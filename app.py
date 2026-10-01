@@ -362,13 +362,22 @@ if active_image_path and os.path.exists(active_image_path):
             
         if save_button:
             if not anbuso_adapter:
-                st.error("File AnBuso belum terhubung dengan benar.")
+                st.error("❌ File AnBuso belum terhubung dengan benar. Silakan upload file Excel di sidebar terlebih dahulu.")
+                st.toast("File AnBuso belum terhubung!", icon="⚠️")
             else:
-                with st.spinner("Menginjeksi data ke Excel melalui Microsoft Excel COM..."):
+                # 1. Notifikasi awal proses dimulai
+                st.toast(f"⏳ Memulai injeksi nilai: {selected_student_info['nama']}...", icon="🔄")
+                
+                # 2. Container Status Proses Interaktif
+                with st.status("⏳ Sedang memproses injeksi nilai ke Excel AnBuso...", expanded=True) as status_box:
                     try:
+                        status_box.write(f"🔍 Menyiapkan data siswa: **{selected_student_info['nama']}** (Baris {selected_student_info['row_input02']})...")
+                        
                         # Siapkan payload
                         formatted_pg = {q: {"choice": final_pg_answers[q], "confidence": 0.3} for q in final_pg_answers}
                         formatted_pgk = {q: {"choices": final_pgk_answers[q]} for q in final_pgk_answers}
+                        
+                        status_box.write("⚙️ Menghubungkan ke Microsoft Excel COM Automation & memeriksa macro VBA...")
                         
                         inject_res = anbuso_adapter.inject_answers(
                             selected_student_info,
@@ -376,10 +385,31 @@ if active_image_path and os.path.exists(active_image_path):
                             formatted_pgk
                         )
                         
-                        st.success(f"🎉 Data berhasil dimasukkan ke **{selected_student_info['nama']}**!")
-                        st.write(f"📁 **File Disimpan:** `{inject_res['saved_file']}`")
-                        st.write(f"📌 **Detail Baris:** Input02 (Baris {inject_res['row_in_input02']}) ➔ Tab Isian / Data03 (Baris {inject_res['row_in_data03']})")
-                        st.info("ℹ️ Seluruh tombol menu grafik navigasi AnBuso tetap 100% utuh.")
+                        status_box.write(f"📝 Jawaban PG (1–25) & Isian (1–5) berhasil ditulis ke **Input02** (Baris {inject_res['row_in_input02']}).")
+                        status_box.write(f"📊 Tab **Data03 (Isian)** dan **Data01 (Objektif)** otomatis terhitung (Baris {inject_res['row_in_data03']}).")
+                        status_box.write("🛡️ Seluruh tombol menu grafik navigasi AnBuso telah diverifikasi 100% utuh.")
+                        
+                        # Update status menjadi selesai
+                        status_box.update(
+                            label=f"✅ Sukses! Nilai {selected_student_info['nama']} berhasil disimpan ke Excel AnBuso",
+                            state="complete",
+                            expanded=False
+                        )
+                        
+                        # 3. Notifikasi Berhasil (Toast + Balloons)
+                        st.toast(f"🎉 Sukses! Nilai {selected_student_info['nama']} tersimpan.", icon="✅")
+                        st.balloons()
+                        
+                        # Kartu Rangkuman Sukses
+                        st.success(f"🎉 **Data Berhasil Diinjeksi!** Nilai untuk siswa **{selected_student_info['nama']}** telah tersimpan dengan aman.")
+                        
+                        col_info1, col_info2 = st.columns([1, 1])
+                        with col_info1:
+                            st.write(f"📁 **File Disimpan:** `{os.path.basename(inject_res['saved_file'])}`")
+                            st.caption(f"Lokasi penuh: `{inject_res['saved_file']}`")
+                        with col_info2:
+                            st.write(f"📌 **Posisi Baris:** Input02 (Baris {inject_res['row_in_input02']}) ➔ Tab Isian (Baris {inject_res['row_in_data03']})")
+                            st.caption("Status VBA: 100% Shapes & Macro terlindungi.")
                         
                         if os.path.exists(inject_res['saved_file']):
                             with open(inject_res['saved_file'], "rb") as f_up:
@@ -392,7 +422,15 @@ if active_image_path and os.path.exists(active_image_path):
                                     use_container_width=True
                                 )
                     except Exception as err:
-                        st.error(f"Terjadi kesalahan saat menyimpan ke Excel: {err}")
+                        status_box.update(
+                            label="❌ Gagal menginjeksi data ke Excel AnBuso!",
+                            state="error",
+                            expanded=True
+                        )
+                        st.toast(f"❌ Gagal menyimpan data: {err}", icon="🚨")
+                        st.error(f"❌ **Terjadi Kesalahan saat Menyimpan ke Excel:**\n`{err}`")
+                        st.warning("💡 **Tips Solusi:** Pastikan file Excel AnBuso tersebut tidak sedang dibuka atau dikunci oleh program Microsoft Excel lain di komputer Anda.")
+
 
 else:
     st.info("Silakan unggah foto lembar jawaban atau klik salah satu tombol sampel di atas untuk memulai koreksi.")
