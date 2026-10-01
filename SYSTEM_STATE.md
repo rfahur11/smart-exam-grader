@@ -48,16 +48,23 @@
 - [x] Fitur Human-in-the-Loop: Review alert coretan ganda & dropdown koreksi nama siswa
 - [x] Tombol 1-klik simpan ke Excel AnBuso dengan menu utuh
 
+### Phase 5: Version Control & Executive Showcase
+- [x] Inisialisasi Git local repo branch `main` & initial commit (`9f2dd86`)
+- [x] Konfigurasi remote origin `git@github.com:rfahur11/smart-exam-grader.git`
+- [x] Executive README kelas dunia (`README.md`) dengan diagram arsitektur Mermaid & ROI
+- [x] Social Media Showcase Pack (`docs/SHOWCASE_PACK.md`): LinkedIn PAS post, Twitter thread 5-tweet, Video demo script 25s
+- [x] LinkedIn Carousel 7-Slide HD 1080x1350 (`docs/carousel.html`) berstandar Personal Branding Fahrur Rozi K
+
 ---
 
 ## 🚀 Local Runbook
 ```bash
-# 1. Masuk ke direktori proyek
-cd d:/porto/smart-exam-grader
-
-# 2. Jalankan Web UI Interaktif untuk Guru
+# 1. Jalankan Web UI Interaktif untuk Guru (atau double click Jalankan_Smart_Grader.bat)
 streamlit run app.py
 
-# 3. Atau jalankan via CLI langsung
+# 2. Atau jalankan via CLI langsung
 python run_anbuso_grader.py
+
+# 3. Buka Slide Carousel di Browser untuk Export ke PDF
+start docs/carousel.html
 ```
