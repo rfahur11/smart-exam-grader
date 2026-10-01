@@ -72,24 +72,93 @@ def load_modules():
 
 modules = load_modules()
 
+def pick_excel_file() -> str:
+    """Membuka dialog file browser Windows bawaan untuk memilih file Excel dan mengembalikan path lengkapnya."""
+    # 1. Coba via tkinter (cepat & native)
+    try:
+        import tkinter as tk
+        from tkinter import filedialog
+        root = tk.Tk()
+        root.withdraw()
+        root.attributes('-topmost', True)
+        path = filedialog.askopenfilename(
+            title="Pilih File Master Excel AnBuso",
+            filetypes=[("Excel Files", "*.xlsx;*.xlsm"), ("All Files", "*.*")]
+        )
+        root.destroy()
+        if path and os.path.exists(path):
+            return os.path.abspath(path)
+    except Exception:
+        pass
+
+    # 2. Fallback via PowerShell Forms
+    try:
+        import subprocess
+        ps_cmd = (
+            "[System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms') | Out-Null; "
+            "$f = New-Object System.Windows.Forms.OpenFileDialog; "
+            "$f.Filter = 'Excel Files (*.xlsx;*.xlsm)|*.xlsx;*.xlsm|All Files (*.*)|*.*'; "
+            "$f.Title = 'Pilih File Master Excel AnBuso'; "
+            "$f.Multiselect = $false; "
+            "if ($f.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { Write-Output $f.FileName }"
+        )
+        out = subprocess.check_output(["powershell", "-NoProfile", "-Command", ps_cmd], text=True).strip()
+        if out and os.path.exists(out):
+            return os.path.abspath(out)
+    except Exception:
+        pass
+
+    return ""
+
 # SIDEBAR: Pengaturan File Excel AnBuso
 st.sidebar.markdown("### ⚙️ Pengaturan File AnBuso")
 
-anbuso_source_mode = st.sidebar.radio(
-    "Metode Input File AnBuso:",
-    ["📤 Upload File Master (.xlsx)", "⚡ Pakai Sampel XI 5", "📁 Path File Komputer"],
-    index=0,
-    help="Pilih apakah ingin mengunggah file Excel AnBuso baru atau memakai file sampel/lokal."
+if "anbuso_file_path" not in st.session_state:
+    default_anbuso_path = r"C:\Users\black\Downloads\10, Fase F XI 5_ASTS_AnBuso_Bahasa Inggris.xlsx"
+    sample_path = os.path.abspath(os.path.join("data", "templates", "sample_anbuso_bahasa_inggris.xlsx"))
+    if os.path.exists(default_anbuso_path):
+        st.session_state.anbuso_file_path = default_anbuso_path
+    elif os.path.exists(sample_path):
+        st.session_state.anbuso_file_path = sample_path
+    else:
+        st.session_state.anbuso_file_path = ""
+
+# Tombol Browse File Explorer Native Windows
+btn_browse = st.sidebar.button(
+    "📂 Jelajahi / Pilih File di Komputer...",
+    use_container_width=True,
+    help="Buka jendela File Explorer untuk memilih file Excel langsung dari komputer Anda."
 )
 
-active_anbuso_file = None
-sample_anbuso_path = os.path.abspath(os.path.join("data", "templates", "sample_anbuso_bahasa_inggris.xlsx"))
+if btn_browse:
+    selected_path = pick_excel_file()
+    if selected_path:
+        st.session_state.anbuso_file_path = selected_path
+        st.rerun()
 
-if anbuso_source_mode == "📤 Upload File Master (.xlsx)":
-    uploaded_anbuso = st.sidebar.file_uploader(
-        "Pilih file Excel AnBuso:",
+# Input teks path yang langsung terisi otomatis
+path_input = st.sidebar.text_input(
+    "Path File Master Excel AnBuso:",
+    value=st.session_state.anbuso_file_path,
+    help="Path absolut file Excel AnBuso yang akan diedit langsung."
+)
+
+if path_input != st.session_state.anbuso_file_path:
+    st.session_state.anbuso_file_path = path_input
+
+# Opsi Cepat / Alternatif Upload
+with st.sidebar.expander("⚡ Alternatif: Pakai Sampel / Upload Web"):
+    sample_path = os.path.abspath(os.path.join("data", "templates", "sample_anbuso_bahasa_inggris.xlsx"))
+    if st.button("⚡ Gunakan Master Sampel XI 5", use_container_width=True):
+        if os.path.exists(sample_path):
+            st.session_state.anbuso_file_path = sample_path
+            st.rerun()
+            
+    uploaded_anbuso = st.file_uploader(
+        "Upload File (.xlsx):",
         type=["xlsx", "xlsm"],
-        help="Unggah file format AnBuso kelas Anda (misal dari kurikulum/wali kelas)."
+        key="anbuso_web_uploader",
+        help="Simpan file ke folder aplikasi."
     )
     if uploaded_anbuso is not None:
         save_dir = os.path.abspath(os.path.join("data", "templates"))
@@ -97,26 +166,10 @@ if anbuso_source_mode == "📤 Upload File Master (.xlsx)":
         target_path = os.path.join(save_dir, f"uploaded_{uploaded_anbuso.name}")
         with open(target_path, "wb") as f_out:
             f_out.write(uploaded_anbuso.getbuffer())
-        active_anbuso_file = target_path
-    elif os.path.exists(sample_anbuso_path):
-        st.sidebar.info("💡 Belum punya file? Anda bisa memilih opsi '⚡ Pakai Sampel XI 5' di atas.")
+        st.session_state.anbuso_file_path = target_path
+        st.rerun()
 
-elif anbuso_source_mode == "⚡ Pakai Sampel XI 5":
-    if os.path.exists(sample_anbuso_path):
-        active_anbuso_file = sample_anbuso_path
-        st.sidebar.caption("Menggunakan master Bahasa Inggris XI 5 bawaan.")
-    else:
-        st.sidebar.warning("File sampel tidak ditemukan.")
-
-else:  # "📁 Path File Komputer"
-    default_anbuso_path = r"C:\Users\black\Downloads\10, Fase F XI 5_ASTS_AnBuso_Bahasa Inggris.xlsx"
-    custom_path = st.sidebar.text_input(
-        "Ketik path absolut file:",
-        value=default_anbuso_path if os.path.exists(default_anbuso_path) else "",
-        help="Contoh: D:\\Data\\AnBuso_Kelas10.xlsx"
-    )
-    if custom_path and os.path.exists(custom_path):
-        active_anbuso_file = os.path.abspath(custom_path)
+active_anbuso_file = st.session_state.anbuso_file_path
 
 anbuso_adapter = None
 student_roster = []
@@ -150,7 +203,8 @@ if active_anbuso_file and os.path.exists(active_anbuso_file):
     except Exception as e:
         st.sidebar.error(f"Gagal memuat Excel AnBuso: {e}")
 else:
-    st.sidebar.warning("Silakan unggah atau pilih file Excel AnBuso untuk mengaktifkan sinkronisasi.")
+    st.sidebar.warning("Silakan klik '📂 Jelajahi / Pilih File di Komputer...' untuk menghubungkan file AnBuso Anda.")
+
 
 
 st.sidebar.markdown("---")
