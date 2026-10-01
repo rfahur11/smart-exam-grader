@@ -1,7 +1,8 @@
 # 📋 SYSTEM STATE: Smart Exam Grader
 
 > **Proyek**: Sistem Penilaian Otomatis Lembar Jawaban Kertas Ujian ke Excel  
-> **Status**: In Development (Layer 1 Scaffolded, PoC Implementation)  
+> **Status**: Production-Ready / Complete  
+> **Repository**: [github.com/rfahur11/smart-exam-grader](https://github.com/rfahur11/smart-exam-grader)  
 > **Terakhir Diperbarui**: 2026-10-01  
 
 ---
