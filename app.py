@@ -178,48 +178,90 @@ uploaded_file = c_up1.file_uploader(
 use_sample_1 = c_up2.button("⚡ Uji Sampel: Anindita (Kelas X)")
 use_sample_2 = c_up3.button("⚡ Uji Sampel: Fadilatul (XI 5)")
 
-active_image_path = None
+# Inisialisasi Session State
+if "active_image_path" not in st.session_state:
+    st.session_state.active_image_path = None
+if "last_injected_info" not in st.session_state:
+    st.session_state.last_injected_info = None
+if "cached_extracted_data" not in st.session_state:
+    st.session_state.cached_extracted_data = {}
+
 temp_image_dir = "data/sample_inputs"
+os.makedirs(temp_image_dir, exist_ok=True)
 
 if uploaded_file is not None:
     temp_path = os.path.join(temp_image_dir, "temp_uploaded.jpg")
     with open(temp_path, "wb") as f:
         f.write(uploaded_file.getbuffer())
-    active_image_path = temp_path
+    st.session_state.active_image_path = temp_path
+    st.session_state.last_injected_info = None
 elif use_sample_1:
-    active_image_path = os.path.join(temp_image_dir, "sample_lembar_jawab.jpg")
+    st.session_state.active_image_path = os.path.join(temp_image_dir, "sample_lembar_jawab.jpg")
+    st.session_state.last_injected_info = None
 elif use_sample_2:
-    active_image_path = os.path.join(temp_image_dir, "sample_fadilatul.jpg")
+    st.session_state.active_image_path = os.path.join(temp_image_dir, "sample_fadilatul.jpg")
+    st.session_state.last_injected_info = None
+
+active_image_path = st.session_state.active_image_path
 
 # PROSES PENILAIAN JIKA GAMBAR AKTIF
 if active_image_path and os.path.exists(active_image_path):
     st.markdown("---")
     
-    # Jalankan Pipeline Koreksi
-    img_bgr = modules["preprocessor"].load_image(active_image_path)
-    rois = modules["preprocessor"].extract_rois(img_bgr)
+    col_act1, col_act2 = st.columns([3, 1])
+    with col_act1:
+        st.caption(f"📄 Lembar Jawaban Aktif: `{os.path.basename(active_image_path)}`")
+    with col_act2:
+        if st.button("❌ Tutup / Ganti Lembar", use_container_width=True):
+            st.session_state.active_image_path = None
+            st.session_state.last_injected_info = None
+            st.rerun()
     
-    # 1. OCR Identitas
-    id_data = modules["identity_reader"].read_identity(rois["identity"], student_roster=student_roster)
+    # Jalankan / Ambil dari Cache Pipeline Koreksi
+    cache_key = f"{active_image_path}_{len(student_roster)}"
+    if cache_key not in st.session_state.cached_extracted_data:
+        with st.spinner("Menganalisis lembar jawaban dengan OMR & OCR..."):
+            img_bgr = modules["preprocessor"].load_image(active_image_path)
+            rois = modules["preprocessor"].extract_rois(img_bgr)
+            
+            # 1. OCR Identitas
+            id_data = modules["identity_reader"].read_identity(rois["identity"], student_roster=student_roster)
+            
+            # 2. OMR Grid Engine
+            sec1_tables = modules["omr_engine"].find_section1_tables(rois["section_1"])
+            answers_pg = {}
+            for table_box, start_q in sec1_tables:
+                x, y, w, h = table_box
+                table_crop = rois["section_1"][y:y+h, x:x+w]
+                table_res = modules["omr_engine"].extract_pg_table(table_crop, start_q)
+                answers_pg.update(table_res)
+                
+            sec2_box = modules["omr_engine"].find_section2_table(rois["section_2"])
+            x2, y2, w2, h2 = sec2_box
+            sec2_crop = rois["section_2"][y2:y2+h2, x2:x2+w2]
+            answers_pgk = modules["omr_engine"].extract_pgk_table(sec2_crop)
+            
+            st.session_state.cached_extracted_data[cache_key] = {
+                "img_bgr": img_bgr,
+                "rois": rois,
+                "id_data": id_data,
+                "answers_pg": answers_pg,
+                "answers_pgk": answers_pgk
+            }
+            
+    cached = st.session_state.cached_extracted_data[cache_key]
+    img_bgr = cached["img_bgr"]
+    rois = cached["rois"]
+    id_data = cached["id_data"]
+    answers_pg = cached["answers_pg"]
+    answers_pgk = cached["answers_pgk"]
+    
     detected_name_raw = id_data.get("raw_name_ocr") or id_data.get("nama") or "Tidak Terbaca"
     detected_no_peserta = id_data.get("no_peserta") or "-"
     
-    # 2. OMR Grid Engine
-    sec1_tables = modules["omr_engine"].find_section1_tables(rois["section_1"])
-    answers_pg = {}
-    for table_box, start_q in sec1_tables:
-        x, y, w, h = table_box
-        table_crop = rois["section_1"][y:y+h, x:x+w]
-        table_res = modules["omr_engine"].extract_pg_table(table_crop, start_q)
-        answers_pg.update(table_res)
-        
-    sec2_box = modules["omr_engine"].find_section2_table(rois["section_2"])
-    x2, y2, w2, h2 = sec2_box
-    sec2_crop = rois["section_2"][y2:y2+h2, x2:x2+w2]
-    answers_pgk = modules["omr_engine"].extract_pgk_table(sec2_crop)
-    
     # TAMPILAN BERDAMPINGAN: KIRI (GAMBAR) & KANAN (DATA EKSTRAKSI)
     col_view, col_data = st.columns([1, 1], gap="medium")
+
     
     with col_view:
         st.markdown("#### 🖼️ Pratinjau Lembar Ujian")
@@ -396,31 +438,17 @@ if active_image_path and os.path.exists(active_image_path):
                             expanded=False
                         )
                         
+                        # Simpan ke session_state agar tidak hilang jika terjadi interaksi berikutnya
+                        st.session_state.last_injected_info = {
+                            "student_name": selected_student_info['nama'],
+                            "saved_file": inject_res['saved_file'],
+                            "row_in_input02": inject_res['row_in_input02'],
+                            "row_in_data03": inject_res['row_in_data03']
+                        }
+                        
                         # 3. Notifikasi Berhasil (Toast + Balloons)
                         st.toast(f"🎉 Sukses! Nilai {selected_student_info['nama']} tersimpan.", icon="✅")
                         st.balloons()
-                        
-                        # Kartu Rangkuman Sukses
-                        st.success(f"🎉 **Data Berhasil Diinjeksi!** Nilai untuk siswa **{selected_student_info['nama']}** telah tersimpan dengan aman.")
-                        
-                        col_info1, col_info2 = st.columns([1, 1])
-                        with col_info1:
-                            st.write(f"📁 **File Disimpan:** `{os.path.basename(inject_res['saved_file'])}`")
-                            st.caption(f"Lokasi penuh: `{inject_res['saved_file']}`")
-                        with col_info2:
-                            st.write(f"📌 **Posisi Baris:** Input02 (Baris {inject_res['row_in_input02']}) ➔ Tab Isian (Baris {inject_res['row_in_data03']})")
-                            st.caption("Status VBA: 100% Shapes & Macro terlindungi.")
-                        
-                        if os.path.exists(inject_res['saved_file']):
-                            with open(inject_res['saved_file'], "rb") as f_up:
-                                st.download_button(
-                                    label="📥 Klik untuk Unduh File Excel Terupdate",
-                                    data=f_up,
-                                    file_name=os.path.basename(inject_res['saved_file']),
-                                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                                    type="primary",
-                                    use_container_width=True
-                                )
                     except Exception as err:
                         status_box.update(
                             label="❌ Gagal menginjeksi data ke Excel AnBuso!",
@@ -431,6 +459,30 @@ if active_image_path and os.path.exists(active_image_path):
                         st.error(f"❌ **Terjadi Kesalahan saat Menyimpan ke Excel:**\n`{err}`")
                         st.warning("💡 **Tips Solusi:** Pastikan file Excel AnBuso tersebut tidak sedang dibuka atau dikunci oleh program Microsoft Excel lain di komputer Anda.")
 
+        # Tampilkan kartu sukses persisten jika sudah pernah diinjeksi
+        if st.session_state.last_injected_info:
+            info = st.session_state.last_injected_info
+            st.success(f"🎉 **Data Berhasil Diinjeksi!** Nilai untuk siswa **{info['student_name']}** telah tersimpan dengan aman.")
+            
+            col_info1, col_info2 = st.columns([1, 1])
+            with col_info1:
+                st.write(f"📁 **File Disimpan:** `{os.path.basename(info['saved_file'])}`")
+                st.caption(f"Lokasi penuh: `{info['saved_file']}`")
+            with col_info2:
+                st.write(f"📌 **Posisi Baris:** Input02 (Baris {info['row_in_input02']}) ➔ Tab Isian (Baris {info['row_in_data03']})")
+                st.caption("Status VBA: 100% Shapes & Macro terlindungi.")
+            
+            if os.path.exists(info['saved_file']):
+                with open(info['saved_file'], "rb") as f_up:
+                    st.download_button(
+                        label="📥 Klik untuk Unduh File Excel Terupdate",
+                        data=f_up,
+                        file_name=os.path.basename(info['saved_file']),
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        type="primary",
+                        use_container_width=True
+                    )
 
 else:
+
     st.info("Silakan unggah foto lembar jawaban atau klik salah satu tombol sampel di atas untuk memulai koreksi.")

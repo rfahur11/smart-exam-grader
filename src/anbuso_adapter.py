@@ -103,6 +103,8 @@ class AnBusoAdapter:
 
         # Gunakan pywin32 Excel COM jika tersedia agar seluruh tombol menu (Drawing Shapes/VBA) tidak hilang
         try:
+            import pythoncom
+            pythoncom.CoInitialize()
             import win32com.client as win32
             excel = win32.Dispatch('Excel.Application')
             excel.Visible = False
@@ -124,10 +126,12 @@ class AnBusoAdapter:
                 saved_to = target_path
             finally:
                 excel.Quit()
+                pythoncom.CoUninitialize()
         except Exception as e:
             # Fallback ke openpyxl jika Excel COM terkunci/tidak tersedia
             try:
                 wb.save(target_path)
+
                 saved_to = target_path
             except PermissionError:
                 fallback_path = target_path.replace(".xlsx", "_TERISI.xlsx")
