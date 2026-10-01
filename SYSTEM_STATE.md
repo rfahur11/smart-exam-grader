@@ -56,6 +56,13 @@
 - [x] Social Media Showcase Pack (`docs/SHOWCASE_PACK.md`): LinkedIn PAS post, Twitter thread 5-tweet, Video demo script 25s
 - [x] LinkedIn Carousel 7-Slide HD 1080x1350 (`docs/carousel.html`) berstandar Personal Branding Fahrur Rozi K
 
+### Phase 6: One-Click Windows Installer Packaging
+- [x] Asset generator icon desktop multi-resolusi (`assets/icon.ico`)
+- [x] Script batch auto-setup dengan silent auto-download Python 3.11 (`Jalankan_Smart_Grader.bat`)
+- [x] Inno Setup 6 compilation script (`installer.iss`) dengan user-level install tanpa UAC (`lowest`)
+- [x] Builder script 1-klik (`build_installer.bat`)
+- [x] Output executable installer resmi: `dist/Setup_SmartExamGrader_v1.0.0.exe` (2.49 MB)
+
 ---
 
 ## 🚀 Local Runbook
