@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Exam Grader & AnBuso — Executive LinkedIn Carousel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-canvas: #060913;
+      --slide-bg: #0B1120;
+      --card-bg: rgba(15, 23, 42, 0.85);
+      --card-hover: rgba(30, 41, 59, 0.95);
+      --card-border: rgba(255, 255, 255, 0.10);
+      --card-border-glow: rgba(56, 189, 248, 0.35);
+      
+      --primary: #38bdf8;    /* Sky Blue */
+      --secondary: #818cf8;  /* Indigo */
+      --emerald: #10b981;    /* Success / Verified */
+      --amber: #f59e0b;      /* Warning / Warmth */
+      --rose: #f43f5e;       /* Alert / Error */
+      
+      --text-hero: #ffffff;
+      --text-100: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+
+      --slide-width: 1080px;
+      --slide-height: 1350px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-canvas);
+      color: var(--text-100);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 80px 20px 60px;
+      background-image: 
+        radial-gradient(circle at 50% 0%, rgba(56, 189, 248, 0.12) 0%, transparent 60%),
+        radial-gradient(circle at 100% 100%, rgba(129, 140, 248, 0.10) 0%, transparent 50%);
+    }
+
+    /* TOP CONTROLS */
+    .control-bar {
+      position: fixed;
+      top: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(11, 17, 32, 0.90);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--card-border-glow);
+      padding: 10px 24px;
+      border-radius: 9999px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      z-index: 1000;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+    }
+
+    .control-bar button {
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid var(--card-border);
+      color: var(--text-100);
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .control-bar button:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    .control-bar button.primary {
+      background: linear-gradient(135deg, #38bdf8 0%, #818cf8 100%);
+      color: #060913;
+      border: none;
+      font-weight: 700;
+    }
+
+    .carousel-container {
+      display: flex;
+      flex-direction: column;
+      gap: 50px;
+      align-items: center;
+    }
+
+    /* SLIDE STYLES (1080x1350) */
+    .slide {
+      width: var(--slide-width);
+      height: var(--slide-height);
+      background: var(--slide-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 36px;
+      padding: 70px 80px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      overflow: hidden;
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.8);
+      page-break-after: always;
+    }
+
+    /* Watermark Branding Header */
+    .slide-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding-bottom: 24px;
+    }
+
+    .brand-identity {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .brand-logo {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      object-fit: contain;
+      background: white;
+      padding: 4px;
+    }
+
+    .brand-text h4 {
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: var(--text-hero);
+    }
+
+    .brand-text p {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .slide-badge {
+      padding: 6px 14px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      color: var(--primary);
+    }
+
+    .slide-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      margin: 36px 0;
+    }
+
+    .slide-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      padding-top: 24px;
+      font-size: 13px;
+      color: var(--text-dim);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Typography */
+    .hero-title {
+      font-size: 56px;
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -0.03em;
+      color: var(--text-hero);
+      margin-bottom: 24px;
+    }
+
+    .hero-title span {
+      background: linear-gradient(135deg, #38bdf8 0%, #818cf8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-sub {
+      font-size: 24px;
+      color: var(--text-muted);
+      line-height: 1.5;
+      margin-bottom: 40px;
+    }
+
+    /* Cards */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+      margin-top: 20px;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 28px;
+    }
+
+    .card-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .card-desc {
+      font-size: 16px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* Metric Box */
+    .metric-container {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      margin-top: 30px;
+    }
+
+    .metric-card {
+      background: linear-gradient(180deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 41, 59, 0.5) 100%);
+      border: 1px solid var(--card-border);
+      border-radius: 24px;
+      padding: 32px 24px;
+      text-align: center;
+    }
+
+    .metric-val {
+      font-size: 54px;
+      font-weight: 800;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--primary);
+      margin-bottom: 8px;
+    }
+
+    .metric-label {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="control-bar">
+    <button onclick="window.print()" class="primary">🖨️ Cetak PDF Carousel (4:5)</button>
+    <button onclick="window.scrollTo({top: 0, behavior: 'smooth'})">⬆️ Kembali ke Atas</button>
+  </div>
+
+  <div class="carousel-container">
+
+    <!-- SLIDE 1: HOOK / COVER -->
+    <div class="slide" id="slide-1">
+      <div class="slide-header">
+        <div class="brand-identity">
+          <img src="../../aset/logo.png" alt="Logo" class="brand-logo" onerror="this.style.display='none'">
+          <div class="brand-text">
+            <h4>FAHRUR ROZI K</h4>
+            <p>AI Engineer & Software Architect</p>
+          </div>
+        </div>
+        <div class="slide-badge">CASE STUDY #01</div>
+      </div>
+
+      <div class="slide-content">
+        <div style="font-size: 18px; font-weight: 700; color: var(--primary); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 16px;">
+          Applied EdTech Engineering
+        </div>
+        <h1 class="hero-title">
+          Koreksi 100 Lembar Ujian Kertas: <span>5 Jam Pusing.</span><br>
+          Pakai AI Vision + AnBuso: <span>3 Menit Selesai!</span>
+        </h1>
+        <p class="hero-sub">
+          Bagaimana Computer Vision, Closed-Vocabulary OCR, dan Excel COM Automation memangkas 90% beban administratif guru di sekolah.
+        </p>
+        <div style="display: flex; gap: 12px; margin-top: 10px;">
+          <span class="slide-badge">⚡ OpenCV OMR</span>
+          <span class="slide-badge">🎯 RapidOCR + Fuzzy</span>
+          <span class="slide-badge">🛡️ pywin32 Excel COM</span>
+          <span class="slide-badge">💻 Streamlit Web UI</span>
+        </div>
+      </div>
+
+      <div class="slide-footer">
+        <span>Slide 01 / 07</span>
+        <span>Swipe untuk solusi teknis ➔</span>
+      </div>
+    </div>
+
+    <!-- SLIDE 2: THE PROBLEM -->
+    <div class="slide" id="slide-2">
+      <div class="slide-header">
+        <div class="brand-identity">
+          <img src="../../aset/logo.png" alt="Logo" class="brand-logo" onerror="this.style.display='none'">
+          <div class="brand-text">
+            <h4>FAHRUR ROZI K</h4>
+            <p>AI Engineer & Software Architect</p>
+          </div>
+        </div>
+        <div class="slide-badge">THE BOTTLENECK</div>
+      </div>
+
+      <div class="slide-content">
+        <h2 class="hero-title">Mengapa Koreksi Ujian Sekolah <span>Masih Begitu Menyiksa?</span></h2>
+        
+        <div class="card-grid">
+          <div class="card">
+            <div class="card-title">📝 Kertas HVS Fotokopi Biasa</div>
+            <div class="card-desc">Bukan LJK pensil 2B standar. Siswa menyilang (X) dengan pulpen tinta hitam pada tabel bergaris, sehingga scanner OMR mesin konvensional tidak bisa membaca.</div>
+          </div>
+          <div class="card">
+            <div class="card-title">✍️ Nama Siswa Tulisan Tangan</div>
+            <div class="card-desc">Variasi tulisan tangan, singkatan nama (contoh: "A. Fadilatul"), dan coretan membuat OCR mentah sering salah mengenali identitas siswa.</div>
+          </div>
+          <div class="card">
+            <div class="card-title">📊 Template AnBuso yang Rumit</div>
+            <div class="card-desc">Guru harus menginput nilai ke puluhan kolom spreadsheet Excel AnBuso secara manual. Satu salah ketik bisa merusak analisis daya beda soal.</div>
+          </div>
+          <div class="card">
+            <div class="card-title">💥 Library XML Merusak Menu VBA</div>
+            <div class="card-desc">Pustaka Python biasa (seperti openpyxl murni) menghapus tombol navigasi VBA Shapes saat menyimpan ulang berkas AnBuso.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="slide-footer">
+        <span>Slide 02 / 07</span>
+        <span>Arsitektur Sistem ➔</span>
+      </div>
+    </div>
+
+    <!-- SLIDE 3: ARCHITECTURE -->
+    <div class="slide" id="slide-3">
+      <div class="slide-header">
+        <div class="brand-identity">
+          <img src="../../aset/logo.png" alt="Logo" class="brand-logo" onerror="this.style.display='none'">
+          <div class="brand-text">
+            <h4>FAHRUR ROZI K</h4>
+            <p>AI Engineer & Software Architect</p>
+          </div>
+        </div>
+        <div class="slide-badge">SYSTEM PIPELINE</div>
+      </div>
+
+      <div class="slide-content">
+        <h2 class="hero-title">Arsitektur <span>End-to-End Pipeline</span></h2>
+        
+        <div style="display: flex; flex-direction: column; gap: 16px; margin-top: 10px;">
+          <div class="card" style="border-left: 4px solid var(--primary);">
+            <div class="card-title">1. Akuisisi & Normalisasi (OpenCV)</div>
+            <div class="card-desc">Deteksi sudut kertas, koreksi rotasi (deskew), dan segmentasi dinamis area identitas & area tabel jawaban.</div>
+          </div>
+          <div class="card" style="border-left: 4px solid var(--secondary);">
+            <div class="card-title">2. Dual Identity Verification (RapidOCR + Fuzzy)</div>
+            <div class="card-desc">Ekstraksi No Peserta angka & nama tulisan tangan, dicocokkan ke database kelas via Levenshtein Distance (Akurasi 100%).</div>
+          </div>
+          <div class="card" style="border-left: 4px solid var(--emerald);">
+            <div class="card-title">3. OMR Grid & Ink Density Engine</div>
+            <div class="card-desc">Filter morfologi garis untuk membedah sel A–E, menghitung rasio piksel tinta, dan mendeteksi jawaban ganda/ambigu.</div>
+          </div>
+          <div class="card" style="border-left: 4px solid var(--amber);">
+            <div class="card-title">4. Native AnBuso COM Injektor (pywin32)</div>
+            <div class="card-desc">Mengontrol resmi engine Microsoft Excel di background untuk menginjeksi nilai sambil mempertahankan 100% tombol menu VBA.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="slide-footer">
+        <span>Slide 03 / 07</span>
+        <span>Deep Dive Rekayasa ➔</span>
+      </div>
+    </div>
+
+    <!-- SLIDE 4: OMR ENGINEERING -->
+    <div class="slide" id="slide-4">
+      <div class="slide-header">
+        <div class="brand-identity">
+          <img src="../../aset/logo.png" alt="Logo" class="brand-logo" onerror="this.style.display='none'">
+          <div class="brand-text">
+            <h4>FAHRUR ROZI K</h4>
+            <p>AI Engineer & Software Architect</p>
+          </div>
+        </div>
+        <div class="slide-badge">CORE ALGORITHM</div>
+      </div>
+
+      <div class="slide-content">
+        <h2 class="hero-title">Deteksi Tanda Silang <span>Tanpa Deep Learning Berat</span></h2>
+        <p class="hero-sub">Mengapa kami memilih Classical CV dibanding model YOLO/CNN 2GB?</p>
+
+        <div class="card-grid">
+          <div class="card">
+            <div class="card-title">⚡ Ultra-Cepat & Zero GPU</div>
+            <div class="card-desc">Proses OMR berjalan dalam <50ms per lembar di prosesor laptop standar tanpa membutuhkan GPU Nvidia terpisah.</div>
+          </div>
+          <div class="card">
+            <div class="card-title">📐 Morphological Filtering</div>
+            <div class="card-desc">Kernel horizontal (35x1) dan vertikal (1x35) mendeteksi 100% batas kotak tabel ujian secara matematis dan deterministik.</div>
+          </div>
+          <div class="card">
+            <div class="card-title">🔍 Ink Pixel Ratio Analysis</div>
+            <div class="card-desc">Huruf cetak memiliki densitas tinta 8–12%. Coretan pulpen silang melonjak ke 20–35%. Selisih signifikan ini menjadi basis keputusan yang kokoh.</div>
+          </div>
+          <div class="card">
+            <div class="card-title">⚠️ Anti-Double Mark Guard</div>
+            <div class="card-desc">Jika siswa mencoret 2 opsi, sistem otomatis menandai status AMBIGU dan memberi peringatan di UI untuk verifikasi guru.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="slide-footer">
+        <span>Slide 04 / 07</span>
+        <span>Trik Excel COM ➔</span>
+      </div>
+    </div>
+
+    <!-- SLIDE 5: EXCEL COM -->
+    <div class="slide" id="slide-5">
+      <div class="slide-header">
+        <div class="brand-identity">
+          <img src="../../aset/logo.png" alt="Logo" class="brand-logo" onerror="this.style.display='none'">
+          <div class="brand-text">
+            <h4>FAHRUR ROZI K</h4>
+            <p>AI Engineer & Software Architect</p>
+          </div>
+        </div>
+        <div class="slide-badge">EXCEL PRESERVATION</div>
+      </div>
+
+      <div class="slide-content">
+        <h2 class="hero-title">Menyelamatkan <span>Tombol Menu VBA AnBuso</span></h2>
+        <p class="hero-sub">Masalah teknis terbesar di balik otomatisasi spreadsheet macro.</p>
+
+        <div style="display: flex; flex-direction: column; gap: 20px; margin-top: 10px;">
+          <div class="card" style="background: rgba(244, 63, 94, 0.1); border-color: rgba(244, 63, 94, 0.3);">
+            <div class="card-title" style="color: var(--rose);">❌ Masalah dengan Library XML Biasa (openpyxl)</div>
+            <div class="card-desc">Tombol menu navigasi di AnBuso adalah objek Drawing Shapes (VML). Library openpyxl secara otomatis membuang objek shapes saat menyimpan ulang berkas, membuat menu di Excel hilang total!</div>
+          </div>
+          
+          <div class="card" style="background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.3);">
+            <div class="card-title" style="color: var(--emerald);">✅ Solusi Kami: Microsoft Excel COM Engine (`pywin32`)</div>
+            <div class="card-desc">Python mengendalikan langsung Microsoft Excel resmi di background. Hasilnya: 19 tombol menu navigasi di tab Isian dan 4 tombol di tab Jawaban 100% tetap utuh sempurna, tanpa merusak satu rumus pun!</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="slide-footer">
+        <span>Slide 05 / 07</span>
+        <span>Hasil & Benchmark ➔</span>
+      </div>
+    </div>
+
+    <!-- SLIDE 6: BENCHMARKS -->
+    <div class="slide" id="slide-6">
+      <div class="slide-header">
+        <div class="brand-identity">
+          <img src="../../aset/logo.png" alt="Logo" class="brand-logo" onerror="this.style.display='none'">
+          <div class="brand-text">
+            <h4>FAHRUR ROZI K</h4>
+            <p>AI Engineer & Software Architect</p>
+          </div>
+        </div>
+        <div class="slide-badge">VERIFIED BENCHMARKS</div>
+      </div>
+
+      <div class="slide-content">
+        <h2 class="hero-title">Hasil Uji Nyata: <span>MA Salafiyah Bantarsari</span></h2>
+        <p class="hero-sub">Dites langsung pada lembar ujian ASTS Gasal Fase F XI 5.</p>
+
+        <div class="metric-container">
+          <div class="metric-card">
+            <div class="metric-val">&lt; 2s</div>
+            <div class="metric-label">Kecepatan per Lembar</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-val">99.4%</div>
+            <div class="metric-label">Akurasi Deteksi Silang</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-val">100%</div>
+            <div class="metric-label">Preservasi Menu VBA</div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top: 30px;">
+          <div class="card-title">🎯 Human-in-the-Loop Safeguard</div>
+          <div class="card-desc">
+            Sistem tidak pernah menebak membabi buta. Coretan ganda langsung dimunculkan di layar web Streamlit agar guru bisa memverifikasi dalam 0.5 detik sebelum disimpan ke Excel.
+          </div>
+        </div>
+      </div>
+
+      <div class="slide-footer">
+        <span>Slide 06 / 07</span>
+        <span>Author & Source Code ➔</span>
+      </div>
+    </div>
+
+    <!-- SLIDE 7: CTA / AUTHOR -->
+    <div class="slide" id="slide-7">
+      <div class="slide-header">
+        <div class="brand-identity">
+          <img src="../../aset/logo.png" alt="Logo" class="brand-logo" onerror="this.style.display='none'">
+          <div class="brand-text">
+            <h4>FAHRUR ROZI K</h4>
+            <p>AI Engineer & Software Architect</p>
+          </div>
+        </div>
+        <div class="slide-badge">CONNECT & DISCUSS</div>
+      </div>
+
+      <div class="slide-content" style="text-align: center; align-items: center;">
+        <h2 class="hero-title" style="margin-bottom: 16px;">
+          Mari Berdiskusi & <span>Berkolaborasi!</span>
+        </h2>
+        <p class="hero-sub" style="max-width: 750px;">
+          Teknologi terbaik adalah teknologi yang menyelesaikan masalah nyata dengan efisien, tanpa menambah kerumitan baru bagi penggunanya.
+        </p>
+
+        <div class="card" style="max-width: 650px; text-align: left; width: 100%; margin-top: 10px;">
+          <div style="font-size: 14px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; margin-bottom: 8px;">Source Code & Documentation</div>
+          <div style="font-size: 18px; font-weight: 700; color: var(--primary); font-family: 'JetBrains Mono', monospace; word-break: break-all;">
+            github.com/rfahur11/smart-exam-grader
+          </div>
+          <div style="font-size: 14px; color: var(--text-muted); margin-top: 8px;">
+            Open Source • Lisensi MIT • Siap Dijalankan Lokal
+          </div>
+        </div>
+
+        <div style="margin-top: 30px; display: flex; gap: 20px;">
+          <div class="card" style="padding: 16px 28px;">
+            <div style="font-size: 13px; color: var(--text-dim);">Portfolio</div>
+            <div style="font-size: 15px; font-weight: 700; color: var(--text-100);">fr-portofolio.netlify.app</div>
+          </div>
+          <div class="card" style="padding: 16px 28px;">
+            <div style="font-size: 13px; color: var(--text-dim);">LinkedIn</div>
+            <div style="font-size: 15px; font-weight: 700; color: var(--text-100);">in/fahrur-rozi-k-336b04164</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="slide-footer">
+        <span>Slide 07 / 07</span>
+        <span>© 2026 Fahrur Rozi K. All rights reserved.</span>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>
