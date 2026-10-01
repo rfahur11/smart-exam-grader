@@ -74,25 +74,61 @@ modules = load_modules()
 
 # SIDEBAR: Pengaturan File Excel AnBuso
 st.sidebar.markdown("### ⚙️ Pengaturan File AnBuso")
-default_anbuso_path = r"C:\Users\black\Downloads\10, Fase F XI 5_ASTS_AnBuso_Bahasa Inggris.xlsx"
 
-excel_path_input = st.sidebar.text_input(
-    "Path File Master Excel AnBuso:",
-    value=default_anbuso_path if os.path.exists(default_anbuso_path) else "",
-    help="Lokasi file Excel AnBuso yang akan diinjeksi nilai."
+anbuso_source_mode = st.sidebar.radio(
+    "Metode Input File AnBuso:",
+    ["📤 Upload File Master (.xlsx)", "⚡ Pakai Sampel XI 5", "📁 Path File Komputer"],
+    index=0,
+    help="Pilih apakah ingin mengunggah file Excel AnBuso baru atau memakai file sampel/lokal."
 )
+
+active_anbuso_file = None
+sample_anbuso_path = os.path.abspath(os.path.join("data", "templates", "sample_anbuso_bahasa_inggris.xlsx"))
+
+if anbuso_source_mode == "📤 Upload File Master (.xlsx)":
+    uploaded_anbuso = st.sidebar.file_uploader(
+        "Pilih file Excel AnBuso:",
+        type=["xlsx", "xlsm"],
+        help="Unggah file format AnBuso kelas Anda (misal dari kurikulum/wali kelas)."
+    )
+    if uploaded_anbuso is not None:
+        save_dir = os.path.abspath(os.path.join("data", "templates"))
+        os.makedirs(save_dir, exist_ok=True)
+        target_path = os.path.join(save_dir, f"uploaded_{uploaded_anbuso.name}")
+        with open(target_path, "wb") as f_out:
+            f_out.write(uploaded_anbuso.getbuffer())
+        active_anbuso_file = target_path
+    elif os.path.exists(sample_anbuso_path):
+        st.sidebar.info("💡 Belum punya file? Anda bisa memilih opsi '⚡ Pakai Sampel XI 5' di atas.")
+
+elif anbuso_source_mode == "⚡ Pakai Sampel XI 5":
+    if os.path.exists(sample_anbuso_path):
+        active_anbuso_file = sample_anbuso_path
+        st.sidebar.caption("Menggunakan master Bahasa Inggris XI 5 bawaan.")
+    else:
+        st.sidebar.warning("File sampel tidak ditemukan.")
+
+else:  # "📁 Path File Komputer"
+    default_anbuso_path = r"C:\Users\black\Downloads\10, Fase F XI 5_ASTS_AnBuso_Bahasa Inggris.xlsx"
+    custom_path = st.sidebar.text_input(
+        "Ketik path absolut file:",
+        value=default_anbuso_path if os.path.exists(default_anbuso_path) else "",
+        help="Contoh: D:\\Data\\AnBuso_Kelas10.xlsx"
+    )
+    if custom_path and os.path.exists(custom_path):
+        active_anbuso_file = os.path.abspath(custom_path)
 
 anbuso_adapter = None
 student_roster = []
 class_info = {}
 
-if excel_path_input and os.path.exists(excel_path_input):
+if active_anbuso_file and os.path.exists(active_anbuso_file):
     try:
-        anbuso_adapter = AnBusoAdapter(excel_path=excel_path_input)
+        anbuso_adapter = AnBusoAdapter(excel_path=active_anbuso_file)
         student_roster = anbuso_adapter.get_students()
         
         # Baca metadata kelas dari Input01
-        wb = openpyxl.load_workbook(excel_path_input, data_only=True)
+        wb = openpyxl.load_workbook(active_anbuso_file, data_only=True)
         ws_in01 = wb["Input01"]
         class_info = {
             "sekolah": ws_in01.cell(row=7, column=2).value or "MA Salafiyah Bantarsari",
@@ -103,7 +139,9 @@ if excel_path_input and os.path.exists(excel_path_input):
         }
         wb.close()
         
-        st.sidebar.success(f" Terhubung: {class_info['kelas']} ({len(student_roster)} Siswa)")
+        st.sidebar.success(f"🟢 Terhubung: {class_info['kelas']} ({len(student_roster)} Siswa)")
+        st.sidebar.caption(f"📄 `{os.path.basename(active_anbuso_file)}`")
+        
         with st.sidebar.expander("ℹ️ Detail Kelas & Kunci Jawaban"):
             st.write(f"**Sekolah:** {class_info['sekolah']}")
             st.write(f"**Mata Pelajaran:** {class_info['mapel']}")
@@ -112,7 +150,8 @@ if excel_path_input and os.path.exists(excel_path_input):
     except Exception as e:
         st.sidebar.error(f"Gagal memuat Excel AnBuso: {e}")
 else:
-    st.sidebar.warning("File Excel AnBuso tidak ditemukan di path di atas.")
+    st.sidebar.warning("Silakan unggah atau pilih file Excel AnBuso untuk mengaktifkan sinkronisasi.")
+
 
 st.sidebar.markdown("---")
 st.sidebar.caption("Smart Exam Grader v2.0 - MA Salafiyah Bantarsari")
@@ -310,6 +349,17 @@ if active_image_path and os.path.exists(active_image_path):
         with btn_col1:
             save_button = st.button("💾 Simpan & Injeksi ke Excel AnBuso (Preserve VBA Menu)", type="primary", use_container_width=True)
             
+        with btn_col2:
+            if active_anbuso_file and os.path.exists(active_anbuso_file):
+                with open(active_anbuso_file, "rb") as f_curr:
+                    st.download_button(
+                        label="📥 Unduh File AnBuso Aktif",
+                        data=f_curr,
+                        file_name=os.path.basename(active_anbuso_file),
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        use_container_width=True
+                    )
+            
         if save_button:
             if not anbuso_adapter:
                 st.error("File AnBuso belum terhubung dengan benar.")
@@ -330,7 +380,19 @@ if active_image_path and os.path.exists(active_image_path):
                         st.write(f"📁 **File Disimpan:** `{inject_res['saved_file']}`")
                         st.write(f"📌 **Detail Baris:** Input02 (Baris {inject_res['row_in_input02']}) ➔ Tab Isian / Data03 (Baris {inject_res['row_in_data03']})")
                         st.info("ℹ️ Seluruh tombol menu grafik navigasi AnBuso tetap 100% utuh.")
+                        
+                        if os.path.exists(inject_res['saved_file']):
+                            with open(inject_res['saved_file'], "rb") as f_up:
+                                st.download_button(
+                                    label="📥 Klik untuk Unduh File Excel Terupdate",
+                                    data=f_up,
+                                    file_name=os.path.basename(inject_res['saved_file']),
+                                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                    type="primary",
+                                    use_container_width=True
+                                )
                     except Exception as err:
                         st.error(f"Terjadi kesalahan saat menyimpan ke Excel: {err}")
+
 else:
     st.info("Silakan unggah foto lembar jawaban atau klik salah satu tombol sampel di atas untuk memulai koreksi.")
