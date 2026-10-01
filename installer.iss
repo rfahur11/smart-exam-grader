@@ -34,7 +34,7 @@ DisableProgramGroupPage=yes
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
-Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
+Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
 
 [Files]
 Source: "app.py"; DestDir: "{app}"; Flags: ignoreversion
@@ -59,4 +59,31 @@ Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\assets\icon.ico"; Tasks: desktopicon
 
 [Run]
+Filename: "{app}\assets\prerequisites\python-3.11.9-amd64.exe"; Parameters: "/quiet InstallAllUsers=0 PrependPath=1 Include_test=0 Include_pip=1"; StatusMsg: "Memeriksa dan memasang Python 3.11 Runtime..."; Flags: runhidden; Check: NeedsPython
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: shellexec postinstall nowait skipifsilent
+
+[Code]
+function NeedsPython(): Boolean;
+var
+  ResultCode: Integer;
+begin
+  Result := True;
+  if Exec('cmd.exe', '/c python -c "import sys; exit(0)"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
+  begin
+    if ResultCode = 0 then
+    begin
+      Result := False;
+      Exit;
+    end;
+  end;
+  if FileExists(ExpandConstant('{localappdata}\Programs\Python\Python311\python.exe')) then
+  begin
+    Result := False;
+    Exit;
+  end;
+  if FileExists(ExpandConstant('{localappdata}\Programs\Python\Python310\python.exe')) then
+  begin
+    Result := False;
+    Exit;
+  end;
+end;

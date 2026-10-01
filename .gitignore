@@ -14,3 +14,4 @@ Thumbs.db
 data/outputs/*
 !data/outputs/.gitkeep
 data/sample_inputs/temp_*
+assets/prerequisites/*.exe
